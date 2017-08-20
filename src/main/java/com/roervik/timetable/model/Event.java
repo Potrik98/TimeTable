@@ -4,9 +4,8 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalUnit;
 import java.util.UUID;
-
-import static java.time.temporal.ChronoUnit.DAYS;
 
 @Data
 @Builder(toBuilder = true)
@@ -19,18 +18,17 @@ public class Event {
 
     public Event getNextEvent(final LocalDateTime currentTime) {
         if (!repeat) return this;
-        if (repeatSpec.getType() == RepeatSpec.RepeatType.DAILY) {
-            final long daysBetween = DAYS.between(startTime, currentTime);
-            final long daysToIncrement = currentTime.isBefore(startTime.plusDays(daysBetween))
-                    ? daysBetween
-                    : daysBetween + 1;
-            final LocalDateTime nextEventStartTime = startTime.plusDays(daysToIncrement);
-            final LocalDateTime nextEventEndTime = endTime.plusDays(daysToIncrement);
-            return this.toBuilder()
-                    .startTime(nextEventStartTime)
-                    .endTime(nextEventEndTime)
-                    .build();
-        }
-        return null;
+        final TemporalUnit duration = this.repeatSpec.getRepeatDuration().getChronoUnit();
+        final long durationsBetween = duration.between(startTime, currentTime);
+        final long durationsToIncrement = currentTime.isBefore(startTime.plusDays(durationsBetween))
+                ? durationsBetween
+                : durationsBetween + 1;
+        final LocalDateTime nextEventStartTime = startTime.plus(durationsToIncrement, duration);
+        final LocalDateTime nextEventEndTime = endTime.plus(durationsToIncrement, duration);
+
+        return this.toBuilder()
+                .startTime(nextEventStartTime)
+                .endTime(nextEventEndTime)
+                .build();
     }
 }
